@@ -356,6 +356,64 @@ class Animator {
     }
 }
 
+// https://jsfiddle.net/w67tzfhx/40/
+document.addEventListener('mousedown', onMouseDown, false);
+
+// update positions
+function updatePositions() {
+    var positions = line.geometry.attributes.position.array;
+    var index = 0;
+    for (var i = 0; i < splineArray.length; i++) {
+        positions[index++] = splineArray[i].x;
+        positions[index++] = splineArray[i].y;
+        positions[index++] = splineArray[i].z;
+    }
+}
+
+// render
+function render() {
+    renderer.render(scene, camera);
+}
+
+function onMouseMove(evt) {
+    if (renderer) {
+        var x = (event.clientX / window.innerWidth) * 2 - 1;
+        var y = -(event.clientY / window.innerHeight) * 2 + 1;
+        var vNow = new THREE.Vector3(x, y, 0);
+        vNow.unproject(camera);
+        splineArray.push(vNow);
+    }
+}
+
+function onMouseUp(evt) {
+    document.removeEventListener("mousemove", onMouseMove, false);
+}
+
+function onMouseDown(evt) {
+    if (evt.which == 3) return;
+    var x = (event.clientX / window.innerWidth) * 2 - 1;
+    var y = -(event.clientY / window.innerHeight) * 2 + 1;
+    // do not register if right mouse button is pressed.
+    var vNow = new THREE.Vector3(x, y, 0);
+    vNow.unproject(camera);
+    console.log(vNow.x + " " + vNow.y + " " + vNow.z);
+    splineArray.push(vNow);
+    document.addEventListener("mousemove", onMouseMove, false);
+    document.addEventListener("mouseup", onMouseUp, false);
+}
+
+// animate
+function animate() {
+    requestAnimationFrame(animate);
+    drawCount = splineArray.length;
+    line.geometry.setDrawRange(0, drawCount);
+    updatePositions();
+    line.geometry.attributes.position.needsUpdate = true; // required after the first render
+    render();
+}
+
+
+
 // Generates a gradient texture without filling up
 // an entire canvas. We simply create a 2x1 image
 // containing only the two colored pixels and then
