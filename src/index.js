@@ -47,6 +47,7 @@ class SceneNode {
     }
 
     create_controls() {
+        // console.log(this)
         for (let c of this.controllers) {
             this.folder.remove(c);
         }
@@ -356,64 +357,6 @@ class Animator {
     }
 }
 
-// https://jsfiddle.net/w67tzfhx/40/
-document.addEventListener('mousedown', onMouseDown, false);
-
-// update positions
-function updatePositions() {
-    var positions = line.geometry.attributes.position.array;
-    var index = 0;
-    for (var i = 0; i < splineArray.length; i++) {
-        positions[index++] = splineArray[i].x;
-        positions[index++] = splineArray[i].y;
-        positions[index++] = splineArray[i].z;
-    }
-}
-
-// render
-function render() {
-    renderer.render(scene, camera);
-}
-
-function onMouseMove(evt) {
-    if (renderer) {
-        var x = (event.clientX / window.innerWidth) * 2 - 1;
-        var y = -(event.clientY / window.innerHeight) * 2 + 1;
-        var vNow = new THREE.Vector3(x, y, 0);
-        vNow.unproject(camera);
-        splineArray.push(vNow);
-    }
-}
-
-function onMouseUp(evt) {
-    document.removeEventListener("mousemove", onMouseMove, false);
-}
-
-function onMouseDown(evt) {
-    if (evt.which == 3) return;
-    var x = (event.clientX / window.innerWidth) * 2 - 1;
-    var y = -(event.clientY / window.innerHeight) * 2 + 1;
-    // do not register if right mouse button is pressed.
-    var vNow = new THREE.Vector3(x, y, 0);
-    vNow.unproject(camera);
-    console.log(vNow.x + " " + vNow.y + " " + vNow.z);
-    splineArray.push(vNow);
-    document.addEventListener("mousemove", onMouseMove, false);
-    document.addEventListener("mouseup", onMouseUp, false);
-}
-
-// animate
-function animate() {
-    requestAnimationFrame(animate);
-    drawCount = splineArray.length;
-    line.geometry.setDrawRange(0, drawCount);
-    updatePositions();
-    line.geometry.attributes.position.needsUpdate = true; // required after the first render
-    render();
-}
-
-
-
 // Generates a gradient texture without filling up
 // an entire canvas. We simply create a 2x1 image
 // containing only the two colored pixels and then
@@ -469,6 +412,8 @@ class Viewer {
         // TODO: probably shouldn't be directly accessing window?
         window.onload = (evt) => this.set_3d_pane_size();
         window.addEventListener('resize', (evt) => this.set_3d_pane_size(), false);
+        this.lineArray=[]
+        window.addEventListener('mousedown', (evt) => this.onMouseDown(), false);
 
         requestAnimationFrame(() => this.set_3d_pane_size());
         if (animate || animate === undefined) {
@@ -564,6 +509,91 @@ class Viewer {
         this.animator.after_render();
         this.needs_render = false;
     }
+
+    // https://jsfiddle.net/w67tzfhx/40/
+    // document.addEventListener('mousedown', onMouseDown, false);
+
+    // update positions
+    // updatePositions() {
+    //     var positions = line.geometry.attributes.position.array;
+    //     var index = 0;
+    //     for (var i = 0; i < this.splineArray.length; i++) {
+    //         positions[index++] = splineArray[i].x;
+    //         positions[index++] = splineArray[i].y;
+    //         positions[index++] = splineArray[i].z;
+    //     }
+    // }
+
+    // onMouseMove(evt) {
+    //     if (renderer) {
+    //         var x = (event.clientX / window.innerWidth) * 2 - 1;
+    //         var y = -(event.clientY / window.innerHeight) * 2 + 1;
+    //         var vNow = new THREE.Vector3(x, y, 0);
+    //         // vNow.unproject(this.camera);
+    //         // this.splineArray.push(vNow);
+    //     }
+    // }
+
+    onMouseUp(evt) {
+        // var x = (event.clientX / window.innerWidth) * 2 - 1;
+        // var y = -(event.clientY / window.innerHeight) * 2 + 1;
+        // do not register if right mouse button is pressed.
+        // var vNow = new THREE.Vector3(x, y, 0);
+        // document.removeEventListener("mousemove", onMouseMove, false);
+    }
+
+    onMouseDown() {
+        // https://stackoverflow.com/questions/13055214/mouse-canvas-x-y-to-three-js-world-x-y-z
+
+        // if (evt.which == 3) return;
+        var pos = new THREE.Vector3();
+        var x = (event.clientX / window.innerWidth) * 2 - 1;
+        var y = -(event.clientY / window.innerHeight) * 2 + 1;
+        // do not register if right mouse button is pressed.
+        var vNow = new THREE.Vector3(x,y,0.5);
+
+        vNow.unproject(this.camera);
+        vNow.sub(this.camera.position).normalize();
+
+        var targetZ = 0;
+        var distance = ( targetZ - this.camera.position.z ) / vNow.z;
+        pos.copy( this.camera.position ).add( vNow.multiplyScalar( distance ) );
+
+
+        var material = new THREE.LineBasicMaterial({
+            color: 0x0000ff
+        });
+
+        var geometry = new THREE.Geometry();
+        geometry.vertices.push(
+            vNow,
+            new THREE.Vector3( 0, 0, 0 ),
+        );
+
+        var line = new THREE.Line( geometry, material );
+
+        this.set_object(['arrow'], line);
+        // console.log(this.viewer.lineArray)
+
+        // clicked_pos_handler(vNow);
+        // var line = lineObj(vNow, THREE.Vector3(x, y, 0));
+                // scene.add(line);
+        // vNow.unproject(this.camera);
+        // console.log(vNow.x + " " + vNow.y + " " + vNow.z);
+        // console.log(this.splineArray);
+        // this.splineArray.push(vNow);
+        // document.addEventListener("mousemove", onMouseMove, false);
+        // document.addEventListener("mouseup", this.onMouseUp, false);
+    }
+
+    // animate
+    // animate() {
+    //     drawCount = splineArray.length;
+    //     line.geometry.setDrawRange(0, drawCount);
+    //     updatePositions();
+    //     line.geometry.attributes.position.needsUpdate = true; // required after the first render
+    //     render();
+    // }
 
     animate() {
         requestAnimationFrame(() => this.animate());
